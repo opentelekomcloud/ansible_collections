@@ -5,6 +5,7 @@ plugins/modules/as_group_info.py validate-modules:missing-gplv3-license
 plugins/modules/cce_cluster.py validate-modules:missing-gplv3-license
 plugins/modules/cce_cluster_cert_info.py validate-modules:missing-gplv3-license
 plugins/modules/cce_cluster_info.py validate-modules:missing-gplv3-license
+plugins/modules/customer_master_key.py validate-modules:missing-gplv3-license
 plugins/modules/deh_host.py validate-modules:missing-gplv3-license
 plugins/modules/deh_host_info.py validate-modules:missing-gplv3-license
 plugins/modules/deh_host_type_info.py validate-modules:missing-gplv3-license

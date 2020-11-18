@@ -8,6 +8,7 @@ action_groups:
     - cce_cluster
     - cce_cluster_cert_info
     - cce_cluster_info
+    - customer_master_key
     - deh_host
     - deh_host_info
     - deh_host_type_info

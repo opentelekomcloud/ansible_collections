@@ -1,0 +1,80 @@
+---
+- module_defaults:
+    opentelekomcloud.cloud.loadbalancer:
+      cloud: "{{ test_cloud }}"
+  block:
+    - name: Set random prefix
+      set_fact:
+        prefix: "{{ 99999999 | random | to_uuid | hash('md5') }}"
+
+    - name: Set initial facts
+      set_fact:
+        key_name: "{{ ( prefix + '_key') }}"
+
+    - name: Create key
+      opentelekomcloud.cloud.customer_master_key:
+        key: "{{ key_name }}"
+      register: key
+
+    - name: assert result
+      assert:
+        that:
+          - key is changed
+          - key is success
+
+    - name: Enable key
+      opentelekomcloud.cloud.customer_master_key:
+        key: "{{ key_name }}"
+        enable: yes
+      register: enabled_key
+
+    - name: assert result
+      assert:
+        that:
+          - enabled_key is changed
+          - enabled_key is success
+
+    - name: Disable key
+      opentelekomcloud.cloud.customer_master_key:
+        key: "{{ key_name }}"
+        disable: yes
+      register: disabled_key
+
+    - name: assert result
+      assert:
+        that:
+          - disabled_key is changed
+          - disabled_key is success
+
+    - name: Schedule deletion key
+      opentelekomcloud.cloud.customer_master_key:
+        key: "{{ key_name }}"
+        state: absent
+      register: scheduled_key
+
+    - name: assert result
+      assert:
+        that:
+          - scheduled_key is changed
+          - scheduled_key is success
+
+    - name: Cancel deletion key
+      opentelekomcloud.cloud.customer_master_key:
+        key: "{{ key_name }}"
+        cancel_deletion: yes
+      register: canceled_key
+
+    - name: assert result
+      assert:
+        that:
+          - canceled_key is changed
+          - canceled_key is success
+
+always:
+  - block:
+    # Cleanup
+    - name: Schedule deletion key
+      opentelekomcloud.cloud.customer_master_key:
+        key: "{{ key_name }}"
+        state: absent
+    ignore_errors: yes
