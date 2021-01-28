@@ -13,6 +13,7 @@
     - name: Set facts
       set_fact:
         fl_ip: "{{ fl.floating_ip.floating_ip_address }}"
+
         ptrdname: "{{ ( prefix + 'dns.com.' ) }}"
         description: "{{ ( prefix + 'description-dns' ) }}"
         zone_public_name: "{{ ( prefix + '-dnszone.com.' ) }}"
@@ -83,6 +84,21 @@
           - dns_fl is success
           - dns_fl.ptr.description is defined
 
+    - name: Get DNS Floating IP Info
+      dns_floating_ip_info:
+      register: ptr
+
+    - name: debug configs
+      debug:
+        var: ptr.ptr_records
+
+    - name: assert result
+      assert:
+        that:
+          - ptr is success
+          - ptr is not changed
+          - ptr.ptr_records is defined
+
     - name: Creating a public DNS Zone
       opentelekomcloud.cloud.dns_zones:
         name: "{{ zone_public_name }}"
@@ -115,6 +131,39 @@
         that:
           - dns_zo is success
           - dns_zo.zone.description is defined
+
+    - name: Get DNS Nameserver Info
+      dns_nameserver_info:
+        zone: "{{ zone_public_name }}"
+      register: nms
+
+    - name: debug configs
+      debug:
+        var: nms.dns_nameservers
+
+    - name: assert result
+      assert:
+        that:
+          - nms is success
+          - nms is not changed
+          - nms.dns_nameservers is defined
+
+    - name: Get DNS Zone Info
+      dns_zone_info:
+        zone_type: private
+        name: "{{ zone_public_name }}"
+      register: zone
+
+    - name: debug configs
+      debug:
+        var: zone.dns_zones
+
+    - name: assert result
+      assert:
+        that:
+          - zone is success
+          - zone is not changed
+          - zone.dns_zones is defined
 
     - name: Creating a DNS private Zone
       opentelekomcloud.cloud.dns_zones:
@@ -183,6 +232,22 @@
           - "2.2.2.2"
         state: present
       register: dns_rs
+
+    - name: Get DNS Recordset Info
+      dns_recordset_info:
+        zone_id: "{{ dns_zo.zone.id }}"
+      register: rs
+
+    - name: debug configs
+      debug:
+        var: rs.recordsets
+
+    - name: assert result
+      assert:
+        that:
+          - rs is success
+          - rs is not changed
+          - rs.recordsets is defined
 
     - name: debug
       debug:

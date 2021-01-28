@@ -2,6 +2,10 @@ plugins/modules/as_config.py validate-modules:missing-gplv3-license
 plugins/modules/as_config_info.py validate-modules:missing-gplv3-license
 plugins/modules/as_group.py validate-modules:missing-gplv3-license
 plugins/modules/as_group_info.py validate-modules:missing-gplv3-license
+plugins/modules/dns_floating_ip_info.py validate-modules:missing-gplv3-license
+plugins/modules/dns_nameserver_info.py validate-modules:missing-gplv3-license
+plugins/modules/dns_recordset_info.py validate-modules:missing-gplv3-license
+plugins/modules/dns_zone_info.py validate-modules:missing-gplv3-license
 plugins/modules/cce_cluster.py validate-modules:missing-gplv3-license
 plugins/modules/cce_cluster_cert_info.py validate-modules:missing-gplv3-license
 plugins/modules/cce_cluster_info.py validate-modules:missing-gplv3-license

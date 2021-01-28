@@ -4,6 +4,10 @@ action_groups:
   otc:
     - as_config
     - as_config_info
+    - dns_floating_ip_info
+    - dns_nameserver_info
+    - dns_recordset_info
+    - dns_zone_info
     - as_group
     - cce_cluster
     - cce_cluster_cert_info
