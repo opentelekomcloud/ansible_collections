@@ -13,4 +13,4 @@
         that:
           - backup is success
           - backup is not changed
-          - backup.backups is defined
+          - backup.volume_backups is defined
