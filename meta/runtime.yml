@@ -63,3 +63,4 @@ action_groups:
     - anti_ddos_fip_statuses_info.py
     - anti_ddos_optional_policies_info.py
     - object_info.py
+    - vpn_service.py

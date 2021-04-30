@@ -68,3 +68,4 @@ plugins/modules/anti_ddos_fip_statuses_info.py validate-modules:missing-gplv3-li
 plugins/modules/anti_ddos_optional_policies_info.py validate-modules:missing-gplv3-license
 plugins/modules/server_group_info.py validate-modules:missing-gplv3-license
 plugins/modules/object_info.py validate-modules:missing-gplv3-license
+plugins/modules/vpn_service.py validate-modules:missing-gplv3-license
