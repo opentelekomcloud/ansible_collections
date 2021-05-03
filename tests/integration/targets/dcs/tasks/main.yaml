@@ -1,0 +1,165 @@
+---
+- name: Doing Integration test
+  block:
+    - name: Set random prefix
+      set_fact:
+        prefix: "{{ (99999999 | random | to_uuid | hash('md5')) }}"
+
+    - name: Set facts
+      set_fact:
+        network_name: "{{ prefix + '-dcs-network' }}"
+        subnet_name: "{{ prefix + '-dcs-subnet' }}"
+        router_name: "{{ prefix + '-dcs-router' }}"
+        sg_name: "{{ prefix + '-dcs-sg' }}"
+        dcs_name: "{{ ( 'dcs' + prefix + '-dcs-name' ) }}"
+        dcs_password: "ThisIsas4f3p4a77w0rd"
+        dcs_password_new: "ThisIsnotans4f3password"
+        dcs_description: "{{ ( prefix + '-dcs-description' ) }}"
+        dcs_capacity: 16
+        dcs_available_zones: 
+          - bf84aba586ce4e948da0b97d9a7d62fb
+        dcs_ibp_save_days: 2
+        dcs_ibp_backup_type: manual
+        dcs_ibp_pbp_begin_at: "00:00-01:00"
+        dcs_ibp_pbp_period_type: weekly
+        dcs_ibp_pbp_backup_at: 
+          - 1
+          - 2
+          - 3
+          - 4
+    - name: Create network for DCS
+      openstack.cloud.network:
+        name: "{{ network_name }}"
+        state: present
+      register: dcs_net
+
+    - name: Create subnet for DCS
+      openstack.cloud.subnet:
+        name: "{{ subnet_name }}"
+        state: present
+        network_name: "{{ dcs_net.network.name }}"
+        cidr: "192.168.110.0/24"
+        dns_nameservers: "{{ ['100.125.4.25', '8.8.8.8'] }}"
+      register: dcs_subnet
+
+    - name: Create Router for DCS
+      openstack.cloud.router:
+        name: "{{ router_name }}"
+        state: present
+        network: admin_external_net
+        enable_snat: false
+        interfaces:
+          - net: "{{ dcs_net.network.name }}"
+            subnet: "{{ dcs_subnet.subnet.name }}"
+      register: dcs_router
+    
+    - name: Create Security Group for DCS
+      openstack.cloud.security_group:
+        name: "{{ sg_name }}"
+      register: dcs_sg
+    
+    - name: Creating DCS Instance
+      opentelekomcloud.cloud.dcs_instance:
+        name: "{{ dcs_name }}"
+        description: "{{ dcs_description }}"
+        password: "{{ dcs_password }}"
+        capacity: "{{ dcs_capacity }}"
+        vpc_id: "{{ dcs_router.id }}"
+        security_group_id: "{{ dcs_sg.id }}"
+        subnet_id: "{{ dcs_subnet.subnet.network_id }}"
+        available_zones: "{{ dcs_available_zones }}"
+        product_id: OTC_DCS_MS
+        instance_backup_policy:
+          backup_type: "{{ dcs_ibp_backup_type }}"
+          periodical_backup_plan:
+            begin_at: "{{ dcs_ibp_pbp_begin_at }}"
+            period_type: "{{ dcs_ibp_pbp_period_type }}"
+            backup_at: "{{ dcs_ibp_pbp_backup_at }}"
+        maintain_begin: "22:00:00"
+        maintain_end: "02:00:00"
+      register: dcs_ins
+      check_mode: false
+
+    - name: Getting Instance Informations
+      opentelekomcloud.cloud.dcs_instance_info:
+        name: "{{ dcs_name }}"
+
+    - name: Getting Statistics
+      opentelekomcloud.cloud.dcs_instance_statistics_info:
+    
+    - name: Getting Params
+      opentelekomcloud.cloud.dcs_instance_params_info:
+        id: "{{ dcs_ins.dcs_instance.id }}"
+    
+    - name: Getting Backups
+      opentelekomcloud.cloud.dcs_instance_backup_info:
+        id: "{{ dcs_ins.dcs_instance.id }}"
+    
+    - name: Getting Restore Data
+      opentelekomcloud.cloud.dcs_instance_restore_info:
+        id: "{{ dcs_ins.dcs_instance.id }}"
+    
+    # - name: Updating DCS Instance params
+    #   opentelekomcloud.cloud.dcs_instance:
+    #     name: "{{ dcs_name }}"
+    #     redis_config:
+    #       param_id: "1"
+    #       param_name: "timeout"
+    #       param_value: "100"
+    #   register: dcs_ins_up_par
+    #   check_mode: false
+
+    - name: Restart Instance
+      opentelekomcloud.cloud.dcs_instance:
+        name: "{{ dcs_name }}"
+        restart_instance: true
+      register: dcs_ins_up_par
+      check_mode: true
+
+    # - name: Change Password
+    #   opentelekomcloud.cloud.dcs_instance_password:
+    #     id: "{{ dcs_name }}"
+    #     old_password: "{{ dcs_password }}"
+    #     new_password: "{{ dcs_password_new}}"
+    #   register: dcs_ins_up_par
+    #   check_mode: false
+
+    - name: Backup Instance
+      opentelekomcloud.cloud.dcs_instance_backup:
+        instance_id: "{{ dcs_ins.dcs_instance.id }}"
+      register: dcs_ins_back
+      check_mode: false
+        
+  always:
+    - block:
+      - name: Drop DCS Instance
+        opentelekomcloud.cloud.dcs_instance:
+          name: "{{ dcs_name }}"
+          state: absent
+        register: dcs_ins_dr
+        check_mode: false
+
+      - name: Delete Security Group
+        openstack.cloud.security_group:
+          name: "{{ sg_name }}"
+          state: absent
+        register: dcs_sg
+
+      - name: Drop existing Router
+        openstack.cloud.router:
+          name: "{{ router_name }}"
+          state: absent
+        register: dcs_router_dr
+
+      - name: Drop existing subnet
+        openstack.cloud.subnet:
+          name: "{{ subnet_name }}"
+          state: absent
+        register: dcs_subnet_dr
+
+      - name: Drop existing network
+        openstack.cloud.network:
+          name: "{{ network_name }}"
+          state: absent
+        register: dcs_net_dr
+      ignore_errors: yes
