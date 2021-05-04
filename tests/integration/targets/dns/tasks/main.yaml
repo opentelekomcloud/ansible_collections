@@ -15,9 +15,9 @@
         fl_ip: "{{ fl.floating_ip.floating_ip_address }}"
         ptrdname: "{{ ( prefix + 'dns.com.' ) }}"
         description: "{{ ( prefix + 'description-dns' ) }}"
-        zone_public_name: "{{ ( prefix + '-dnszone.com.' ) }}"
-        zone_private_name: "{{ ( prefix + '-dnszone.com.' ) }}"
-        rs_name: "{{ ( prefix + '-rs.' + prefix + '-dnszone.com.' ) }}"
+        zone_public_name: "{{ ( prefix + '-dnszonepublic.com.' ) }}"
+        zone_private_name: "{{ ( prefix + '-dnszoneprivate.com.' ) }}"
+        rs_name: "{{ ( prefix + '-rs.' + prefix + '-dnszonepublic.com.' ) }}"
         network_name: "{{ ( prefix + '-dnsnetwork' )}}"
         subnet_name: "{{ ( prefix + '-dnssubnet' )}}"
         router_name: "{{ ( prefix + '-dnsrouter' )}}"
@@ -113,7 +113,7 @@
           - dns_fl.ptr.description is defined
 
     - name: Creating a public DNS Zone - check mode
-      opentelekomcloud.cloud.dns_zones:
+      opentelekomcloud.cloud.dns_zone:
         name: "{{ zone_public_name }}"
         state: present
       check_mode: true
@@ -126,7 +126,7 @@
           - dns_zo_ch is changed
 
     - name: Creating a public DNS Zone
-      opentelekomcloud.cloud.dns_zones:
+      opentelekomcloud.cloud.dns_zone:
         name: "{{ zone_public_name }}"
         state: present
       register: dns_zo
@@ -142,7 +142,7 @@
           - dns_zo.zone is defined
 
     - name: Updating a public DNS Zone - check mode
-      opentelekomcloud.cloud.dns_zones:
+      opentelekomcloud.cloud.dns_zone:
         name: "{{ zone_public_name }}"
         state: present
         description: "{{ description }}"
@@ -156,7 +156,7 @@
           - dns_zo_ch is changed
 
     - name: Updating a public DNS Zone
-      opentelekomcloud.cloud.dns_zones:
+      opentelekomcloud.cloud.dns_zone:
         name: "{{ zone_public_name }}"
         state: present
         description: "{{ description }}"
@@ -173,10 +173,10 @@
           - dns_zo.zone.description is defined
 
     - name: Creating a DNS private Zone - check mode
-      opentelekomcloud.cloud.dns_zones:
+      opentelekomcloud.cloud.dns_zone:
         name: "{{ zone_private_name }}"
         router: "{{ router_name }}"
-        zone_type: "private"
+        type: "private"
         state: present
       check_mode: true
       register: dns_zo_pr_ch
@@ -188,10 +188,10 @@
           - dns_zo_pr_ch is changed
 
     - name: Creating a DNS private Zone
-      opentelekomcloud.cloud.dns_zones:
+      opentelekomcloud.cloud.dns_zone:
         name: "{{ zone_private_name }}"
         router: "{{ router_name }}"
-        zone_type: "private"
+        type: "private"
         state: present
       register: dns_zo_pr
 
@@ -206,10 +206,11 @@
           - dns_zo_pr.zone is defined
 
     - name: Updating a private DNS Zone - check mode
-      opentelekomcloud.cloud.dns_zones:
+      opentelekomcloud.cloud.dns_zone:
         name: "{{ zone_private_name }}"
         state: present
         description: "{{ description }}"
+        type: "private"
       check_mode: true
       register: dns_zo_pr_ch
 
@@ -220,10 +221,11 @@
           - dns_zo_pr_ch is changed
 
     - name: Updating a private DNS Zone
-      opentelekomcloud.cloud.dns_zones:
+      opentelekomcloud.cloud.dns_zone:
         name: "{{ zone_private_name }}"
         state: present
         description: "{{ description }}"
+        type: "private"
       register: dns_zo_pr
 
     - name: debug
@@ -332,15 +334,15 @@
         register: dns_rs_dr
 
       - name: Drop DNS public Zone
-        opentelekomcloud.cloud.dns_zones:
+        opentelekomcloud.cloud.dns_zone:
           name: "{{ zone_public_name }}"
           state: absent
         register: dns_zo_pu_dr
 
       - name: Drop DNS private Zone
-        opentelekomcloud.cloud.dns_zones:
+        opentelekomcloud.cloud.dns_zone:
           name: "{{ zone_private_name }}"
-          zone_type: "private"
+          type: "private"
           state: absent
         register: dns_zo_pr_dr
 
