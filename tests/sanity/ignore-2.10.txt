@@ -19,6 +19,15 @@ plugins/modules/ces_metrics_info.py validate-modules:missing-gplv3-license
 plugins/modules/ces_quotas_info.py validate-modules:missing-gplv3-license
 plugins/modules/cce_cluster_node_info.py validate-modules:missing-gplv3-license
 plugins/modules/cce_cluster_node.py validate-modules:missing-gplv3-license
+plugins/modules/dms_instance.py validate-modules:missing-gplv3-license
+plugins/modules/dms_instance_info.py validate-modules:missing-gplv3-license
+plugins/modules/dms_instance_topic.py validate-modules:missing-gplv3-license
+plugins/modules/dms_instance_topic_info.py validate-modules:missing-gplv3-license
+plugins/modules/dms_message.py validate-modules:missing-gplv3-license
+plugins/modules/dms_queue.py validate-modules:missing-gplv3-license
+plugins/modules/dms_queue_group.py validate-modules:missing-gplv3-license
+plugins/modules/dms_queue_info.py validate-modules:missing-gplv3-license
+plugins/modules/dms_queue_group_info.py validate-modules:missing-gplv3-license
 plugins/modules/dns_floating_ip.py validate-modules:missing-gplv3-license
 plugins/modules/dns_recordset.py validate-modules:missing-gplv3-license
 plugins/modules/dns_zone.py validate-modules:missing-gplv3-license

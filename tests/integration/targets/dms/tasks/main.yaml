@@ -1,0 +1,196 @@
+- name: Doing Integration test
+  block:
+    - name: Set random prefix
+      set_fact:
+        prefix: "{{ 99999999 | random | to_uuid | hash('md5') }}"
+
+    - name: Set facts
+      set_fact:
+        queue_name: "{{ ( 'a' + prefix + '-queue' ) }}"
+        group_name: "{{ ( 'group_test' ) }}"
+        instance_name: "{{ ( 'a' + prefix + '-instance' ) }}"
+        network_name: "{{ ( prefix + '-dmsnetwork' )}}"
+        subnet_name: "{{ ( prefix + '-dmssubnet' )}}"
+        router_name: "{{ ( prefix + '-dmsrouter' )}}"
+        sg_name: "{{ ( prefix + '-dmssg' )}}"
+    
+    - name: DMS Queue
+      opentelekomcloud.cloud.dms_queue:
+        name: '{{ queue_name }}'
+        state: present
+      register: dms_queue
+      check_mode: false
+
+    - name: DMS Queue Group
+      opentelekomcloud.cloud.dms_queue_group:
+        queue_name: '{{ queue_name }}'
+        group_name: '{{ group_name }}'
+        state: present
+      register: dms_queue_group
+      check_mode: false
+
+    - name: List DMS Queues
+      opentelekomcloud.cloud.dms_queue_info:
+        queue: '{{ queue_name }}'
+      register: zone_net
+
+    - name: List DMS Queue Group Info
+      opentelekomcloud.cloud.dms_queue_group_info:
+        queue: '{{ queue_name }}'
+        include_deadletter: true
+      register: zone_net
+    
+    - name: Send Messages
+      opentelekomcloud.cloud.dms_message:
+        queue: '{{ queue_name }}'
+        messages:
+          - body: 'test1'
+            attributes:
+              attribute1: 'value1'
+              attribute2: 'value2' 
+          - body: 'test2'
+            attributes:
+              attribute1: 'value3'
+              attribute2: 'value4' 
+        task: send
+      register: dms_mess_send
+    
+    - name: List DMS Queue Group Info
+      opentelekomcloud.cloud.dms_queue_group_info:
+        queue: '{{ queue_name }}'
+        include_deadletter: true
+      register: zone_net
+
+    - name: Consume Messages
+      opentelekomcloud.cloud.dms_message:
+        queue: '{{ queue_name }}'
+        group: '{{ group_name }}'
+        task: consume
+        ack: false
+      register: dms_mess_cons
+
+    - name: List DMS Instance Info
+      opentelekomcloud.cloud.dms_instance_info:
+      register: dms_instance
+    
+    - name: Create network for DMS Instance
+      openstack.cloud.network:
+        name: "{{ network_name }}"
+        state: present
+      register: dms_net
+
+    - name: Create subnet for DMS Instance
+      openstack.cloud.subnet:
+        name: "{{ subnet_name }}"
+        state: present
+        network_name: "{{ dms_net.network.name }}"
+        cidr: "192.168.110.0/24"
+        dns_nameservers: "{{ ['100.125.4.25', '8.8.8.8'] }}"
+      register: dms_subnet
+
+    - name: Create Router for DMS Instance
+      openstack.cloud.router:
+        name: "{{ router_name }}"
+        state: present
+        network: admin_external_net
+        enable_snat: false
+        interfaces:
+          - net: "{{ dms_net.network.name }}"
+            subnet: "{{ dms_subnet.subnet.name }}"
+      register: dms_router
+    
+    - name: Create Security Group for DMS Instance
+      openstack.cloud.security_group:
+        name: "{{ sg_name }}"
+      register: dms_sg
+
+    # - name: Create Kafka Instance
+    #   opentelekomcloud.cloud.dms_instance:
+    #     name: '{{ instance_name }}'
+    #     storage_space: '600'
+    #     vpc_id: '{{ dms_router.id }}'
+    #     security_group_id: '{{ dms_sg.id }}'
+    #     subnet_id: '{{ dms_subnet.subnet.network_id }}'
+    #     available_zones: ['eu-de-03']
+    #     product_id: '00300-30308-0--0'
+    #     storage_spec_code: 'dms.physical.storage.ultra'
+    #   register: dms_mess_cons
+    
+    # - name: Delete Kafka Instance
+    #   opentelekomcloud.cloud.dms_instance:
+    #     name: 'kafka-c76z'
+    #     state: absent
+    #   register: dms_ins
+    #   check_mode: true
+
+    # - name: Update Kafka Instance
+    #   opentelekomcloud.cloud.dms_instance:
+    #     name: 'kafka-s1dd'
+    #     description: 'I need you!'
+    #   register: dms_ins
+    #   check_mode: false
+
+    # - name: Create Instance topic
+    #   opentelekomcloud.cloud.dms_instance_topic:
+    #     instance: 'test'
+    #     id: 'test2'
+    #   register: dms_ins_tp
+    #   check_mode: false
+
+    # - name: List Instance topics
+    #   opentelekomcloud.cloud.dms_instance_topic_info:
+    #     instance: 'test'
+    #   register: dms_ins_tp
+    #   check_mode: false
+
+    # - name: Delete Instance topic
+    #   opentelekomcloud.cloud.dms_instance_topic:
+    #     instance: 'test'
+    #     topics:
+    #       - 'test1'
+    #       - 'test2'
+    #     state: absent
+    #   register: dms_ins_tp
+    #   check_mode: false
+
+  always:
+    - block:
+      - name: DMS Delete Queue Group
+        opentelekomcloud.cloud.dms_queue_group:
+          queue_name: '{{ queue_name }}'
+          group_name: '{{ group_name }}'
+          state: absent
+        register: dms_queue_group_rm
+        check_mode: false
+
+      - name: Delete Queue
+        opentelekomcloud.cloud.dms_queue:
+          name: '{{ queue_name }}'
+          state: absent
+        register: dms_queue_rm
+        check_mode: false
+      
+      - name: Delete Security Group
+        openstack.cloud.security_group:
+          name: "{{ sg_name }}"
+          state: absent
+        register: dms_sg
+
+      - name: Drop existing Router
+        openstack.cloud.router:
+          name: "{{ router_name }}"
+          state: absent
+        register: dns_rout_dr
+
+      - name: Drop existing subnet
+        openstack.cloud.subnet:
+          name: "{{ subnet_name }}"
+          state: absent
+        register: dns_subnet_dr
+
+      - name: Drop existing network
+        openstack.cloud.network:
+          name: "{{ network_name }}"
+          state: absent
+        register: dns_net_dr
+      ignore_errors: yes
