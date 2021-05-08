@@ -77,9 +77,9 @@
       opentelekomcloud.cloud.vpc_peering:
         name: "{{ vpc_peering_name }}"
         local_router: "{{ test_router_1.router.id }}"
-        project_id_local: "{{ project_id }}"
-        peer_router: "{{ test_router_2.router.id }}"
-        project_id_peer: "{{ project_id }}"
+        local_project: "{{ project_id }}"
+        remote_router: "{{ test_router_2.router.id }}"
+        remote_project: "{{ project_id }}"
       register: vpc_peering_check
       check_mode: yes
 
@@ -91,10 +91,10 @@
     - name: Create vpc peering
       opentelekomcloud.cloud.vpc_peering:
         name: "{{ vpc_peering_name }}"
-        local_router: "{{ test_router_1.router.name }}"
-        project_id_local: "{{ project_id }}"
-        peer_router: "{{ test_router_2.router.name }}"
-        project_id_peer: "{{ project_id }}"
+        local_router: "{{ test_router_1.router.id }}"
+        local_project: "{{ project_id }}"
+        remote_router: "{{ test_router_2.router.id }}"
+        remote_project: "{{ project_id }}"
       register: vpc_peering
 
     - name: assert result
@@ -107,7 +107,6 @@
       opentelekomcloud.cloud.vpc_peering:
         id: "{{ vpc_peering.vpc_peering.id }}"
         name: "{{ new_peering_name }}"
-        description: "New description"
       register: updated_vpc_peering
 
     - name: assert result

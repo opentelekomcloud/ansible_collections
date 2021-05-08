@@ -24,12 +24,12 @@ description:
 options:
   name:
     description:
-        - Name of the vpc peering connection.
+        - Name or ID of the vpc peering connection.
         - Mandatory for creating.
         - Can be updated.
     type: str
   id:
-    description:  ID of the vpc peering connection.
+    description: ID of the vpc peering connection.
     type: str
   state:
     description: Should the resource be present or absent.
@@ -39,19 +39,14 @@ options:
   local_router:
     description: Name or ID of the local router.
     type: str
-  project_id_local:
+  local_project:
     description: Specifies the ID of the project to which a local VPC belongs.
     type:  str
-  peer_router:
-    description: Name or ID of the peer router.
+  remote_router:
+    description: ID of the remote router.
     type: str
-  project_id_peer:
+  remote_project:
     description: Specifies the ID of the project to which a peer VPC belongs.
-    type: str
-  description:
-    description:
-        - Provides supplementary information about the VPC peering connection.
-        - Can be updated.
     type: str
 requirements: ["openstacksdk", "otcextensions"]
 '''
@@ -125,9 +120,9 @@ EXAMPLES = '''
 - opentelekomcloud.cloud.vpc_peering:
     name: "peering1"
     local_router: "local-router"
-    project_id_local: "959db9b6017d4a1fa1c6fd17b6820f55"
-    peer_router: "peer-router"
-    project_id_peer: "959db9b6017d4a1fa1c6fd17b6820f55"
+    local_project_id: "959db9b6017d4a1fa1c6fd17b6820f55"
+    remote_router: "peer-router"
+    remote_project_id: "959db9b6017d4a1fa1c6fd17b6820f55"
 
 # Change name of the vpc peering
 - opentelekomcloud.cloud.vpc_peering:
@@ -149,44 +144,41 @@ class VPCPeeringModule(OTCModule):
         id=dict(type='str'),
         state=dict(default='present', choices=['absent', 'present']),
         local_router=dict(type='str'),
-        project_id_local=dict(type='str'),
-        peer_router=dict(type='str'),
-        project_id_peer=dict(type='str'),
-        description=dict(type='str', default="")
+        local_project=dict(type='str'),
+        remote_router=dict(type='str'),
+        remote_project=dict(type='str'),
     )
     module_kwargs = dict(
         required_if=[
-            ('name', 'None', ['id'])
+            ('name', 'None', ['id']),
+            ('state', 'present', ['name', 'local_router', 'local_project',
+                                  'remote_router', 'remote_project']),
         ],
         supports_check_mode=True
     )
 
-    def _check_peering(self, local_vpc_id, peer_vpc_id):
+    def _is_peering_exist(self, local_router_id, peer_router_id):
 
-        result = True
-        peerings = []
+        for peering in self.conn.vpc.peerings():
+            if (
+                (
+                    peering.local_vpc_info['vpc_id'] == local_router_id
+                    and peering.peer_vpc_info['vpc_id'] == peer_router_id)
+                or (
+                    peering.local_vpc_info['vpc_id'] == peer_router_id
+                    and peering.peer_vpc_info['vpc_id'] == local_router_id)
+            ):
+                return True
 
-        for raw in self.conn.vpc.peerings():
-            dt = raw.to_dict()
-            dt.pop('location')
-            peerings.append(dt)
-
-        if peerings:
-            for peering in peerings:
-                if (peering['local_vpc_info']['vpc_id'] == local_vpc_id and peering['peer_vpc_info']['vpc_id'] == peer_vpc_id) or \
-                        (peering['local_vpc_info']['vpc_id'] == peer_vpc_id and peering['peer_vpc_info']['vpc_id'] == local_vpc_id):
-                    result = False
-
-        return result
+        return False
 
     def run(self):
         name = self.params['name']
         id = self.params['id']
         local_router = self.params['local_router']
-        project_id_local = self.params['project_id_local']
-        peer_router = self.params['peer_router']
-        project_id_peer = self.params['project_id_peer']
-        description = self.params['description']
+        local_project = self.params['local_project']
+        remote_router = self.params['remote_router']
+        remote_project = self.params['remote_project']
 
         changed = False
         vpc_peering = None
@@ -203,9 +195,6 @@ class VPCPeeringModule(OTCModule):
 
                 if self.params['name'] and (self.params['name'] != vpc_peering.name):
                     attrs['name'] = self.params['name']
-
-                if self.params['description'] and (self.params['description'] != vpc_peering.description):
-                    attrs['description'] = self.params['description']
 
                 changed = False
 
@@ -232,47 +221,21 @@ class VPCPeeringModule(OTCModule):
 
                 attrs = {}
 
+                local_router = self.conn.network.find_router(local_router, ignore_missing=True)
+
                 if not local_router:
-                    self.fail_json(msg="'local_router' is mandatory for creating")
-
-                if not project_id_local:
-                    self.fail_json(msg="'project_id_local' is mandatory for creating")
-
-                if not peer_router:
-                    self.fail_json(msg="'peer_router' is mandatory for creating")
-
-                if not project_id_peer:
-                    self.fail_json(msg="'project_id_peer' is mandatory for creating")
-
-                local_vpc = self.conn.network.find_router(local_router, ignore_missing=True)
-                peer_vpc = self.conn.network.find_router(peer_router, ignore_missing=True)
-
-                local_vpc_id = None
-                peer_vpc_id = None
-
-                if local_vpc:
-                    local_vpc_id = local_vpc['id']
-                else:
                     self.fail_json(msg="Local router not found")
-
-                if peer_vpc:
-                    peer_vpc_id = peer_vpc['id']
-                else:
-                    self.fail_json(msg="Peer router not found")
 
                 attrs['name'] = name
 
-                local_vpc = {'vpc_id': local_vpc_id, 'project_id': project_id_local}
+                local_vpc = {'vpc_id': local_router.id, 'tenant_id': local_project}
                 attrs['local_vpc_info'] = local_vpc
-                peer_vpc = {'vpc_id': peer_vpc_id, 'project_id': project_id_peer}
+                peer_vpc = {'vpc_id': remote_router, 'tenant_id': remote_project}
                 attrs['peer_vpc_info'] = peer_vpc
-
-                if description:
-                    attrs['description'] = self.params['description']
 
                 changed = False
 
-                if self._check_peering(local_vpc_id, peer_vpc_id):
+                if not self._is_peering_exist(local_router.id, remote_router):
 
                     if self.ansible.check_mode:
                         self.exit_json(changed=True)

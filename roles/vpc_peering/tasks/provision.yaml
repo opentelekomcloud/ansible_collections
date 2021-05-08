@@ -1,0 +1,58 @@
+---
+# Provision VPC Peerings
+- name: Find local project
+  openstack.cloud.project_info:
+    cloud: "{{ vpcp.cloud }}"
+    name: "{{ vpcp.local_project }}"
+  register: local_project
+
+- name: Find Local router
+  openstack.cloud.routers_info:
+    cloud: "{{ vpcp.cloud }}"
+    name: "{{ vpcp.local_router }}"
+  register: local_router
+
+- name: Find Remote project
+  openstack.cloud.project_info:
+    cloud: "{{ vpcp.remote_cloud }}"
+    name: "{{ vpcp.remote_project }}"
+  register: remote_project
+
+- name: Find Remote router
+  openstack.cloud.routers_info:
+    cloud: "{{ vpcp.remote_cloud }}"
+    name: "{{ vpcp.remote_router }}"
+  register: remote_router
+
+- name: Create VPC Peering - A side
+  opentelekomcloud.cloud.vpc_peering:
+    cloud: "{{ vpcp.cloud }}"
+    name: "{{ vpcp.name }}"
+    local_router: "{{ local_router.openstack_routers[0].id }}"
+    local_project: "{{ local_project.openstack_projects[0].id }}"
+    remote_router: "{{ remote_router.openstack_routers[0].id }}"
+    remote_project: "{{ remote_project.openstack_projects[0].id }}"
+  register: peering_a
+
+- name: Accept Peering - B side
+  opentelekomcloud.cloud.vpc_peering_mode:
+    cloud: "{{ vpcp.remote_cloud }}"
+    name: "{{ vpcp.name }}"
+    mode: "accept"
+  register: peering_b
+
+- name: Create VPC Peering route - A side
+  opentelekomcloud.cloud.vpc_route:
+    cloud: "{{ vpcp.cloud }}"
+    type: "peering"
+    router: "{{ local_router.openstack_routers[0].id }}"
+    destination: "{{ vpcp.remote_cidr }}"
+    nexthop: "{{ peering_a.vpc_peering.id }}"
+
+- name: Create VPC Peering route - B side
+  opentelekomcloud.cloud.vpc_route:
+    cloud: "{{ vpcp.remote_cloud }}"
+    type: "peering"
+    router: "{{ remote_router.openstack_routers[0].id }}"
+    destination: "{{ vpcp.local_cidr }}"
+    nexthop: "{{ peering_b.vpc_peering.id }}"
