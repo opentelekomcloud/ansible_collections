@@ -117,24 +117,14 @@ class VPCRouteModule(OTCModule):
         supports_check_mode=True
     )
 
-    def _check_route(self, destination, router_id):
+    def _is_route_exist(self, destination, router_id):
 
         query = {}
-        result = True
 
         query['destination'] = destination
         query['vpc_id'] = router_id
-        data = []
 
-        for raw in self.conn.vpc.routes(**query):
-            dt = raw.to_dict()
-            dt.pop('location')
-            data.append(dt)
-
-        if data:
-            result = False
-
-        return result
+        return len(list(self.conn.vpc.routes(**query))) > 0
 
     def run(self):
 
@@ -157,23 +147,18 @@ class VPCRouteModule(OTCModule):
                 else:
                     self.fail_json(msg="vpc peering connection ('nexthop') not found")
 
-            check = self._check_route(attrs['destination'], attrs['vpc_id'])
+            route_exists = self._is_route_exist(attrs['destination'], attrs['vpc_id'])
 
-            if self.ansible.check_mode:
-                self.exit_json(changed=check)
+            if route_exists:
+                self.exit_json(changed=False)
 
-            if check:
+            if not self.ansible.check_mode:
                 vpc_route = self.conn.vpc.add_route(**attrs)
-                changed = True
-                self.exit_json(
-                    changed=changed,
-                    vpc_route=vpc_route
-                )
 
-            else:
-                self.fail_json(
-                    msg="Resource with this destination already exists"
-                )
+            self.exit_json(
+                changed=True,
+                vpc_route=vpc_route
+            )
 
         elif self.params['state'] == 'absent':
 

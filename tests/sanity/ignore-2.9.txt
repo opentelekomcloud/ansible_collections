@@ -48,6 +48,7 @@ plugins/modules/volume_backup_info.py validate-modules:missing-gplv3-license
 plugins/modules/volume_snapshot_info.py validate-modules:missing-gplv3-license
 plugins/modules/vpc_peering.py validate-modules:missing-gplv3-license
 plugins/modules/vpc_peering_info.py validate-modules:missing-gplv3-license
+plugins/modules/vpc_peering_mode.py validate-modules:missing-gplv3-license
 plugins/modules/vpc_route_info.py validate-modules:missing-gplv3-license
 plugins/modules/vpc_route.py validate-modules:missing-gplv3-license
 plugins/modules/vpn_service_info.py validate-modules:missing-gplv3-license

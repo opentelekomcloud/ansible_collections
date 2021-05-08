@@ -1,0 +1,6 @@
+---
+- include: "provision.yaml"
+  when: "state != 'absent'"
+
+- include: "destroy.yaml"
+  when: "state == 'absent'"
