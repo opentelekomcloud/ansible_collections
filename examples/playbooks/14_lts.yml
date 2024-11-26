@@ -1,0 +1,30 @@
+---
+
+# Testing LTS ansible collection
+#
+- name: Test LTS ansible collections
+  hosts: localhost
+  tasks:
+    - name: Create LTS log group
+      lts_group:
+        name: 'lts_group'
+        ttl_in_days: 5
+        state: present
+
+    - name: Create LTS log stream
+      lts_stream:
+        log_group_name: 'lts_group'
+        log_stream_name: 'lts_stream'
+        ttl_in_days: 5
+
+    - name: Delete LTS log stream
+      lts_stream:
+        log_group_name: 'lts_group'
+        log_stream_name: 'lts_stream'
+        state: absent
+
+    - name: Delete LTS log group
+      lts_group:
+        name: 'lts_group'
+        state: absent
+
