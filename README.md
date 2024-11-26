@@ -55,7 +55,7 @@ $ source ansiblevenv/bin/activate
 Install ``wheel``, ``ansible`` and ``otcextensions``:
 
 ```bash
-(ansiblevenv) $ pip install wheel ansible otcextensions
+(ansiblevenv) $ pip install wheel ansible otcextensions setuptools
 ```
 
 Install opentelekomcloud.cloud collection from Ansible-Galaxy:
