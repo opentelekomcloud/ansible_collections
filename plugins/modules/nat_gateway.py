@@ -115,7 +115,7 @@ gateway:
 EXAMPLES = '''
 # Get configs versions.
 - nat_gateway:
-    internal_network_id: 1234f0c7-82e3-478d-8433-dc5984859e3b
+    internal_network: 1234f0c7-82e3-478d-8433-dc5984859e3b
     name: my_gateway
     router: 1234f70c-6d1d-471e-a911-6924b7ec6ea9
     state: present
